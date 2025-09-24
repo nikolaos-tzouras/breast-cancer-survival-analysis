@@ -3,7 +3,7 @@
 **Date:** September 2025  
 
 ## About this Project
-This project analyzes breast cancer patient data to explore factors affecting survival. Key variables include Age, Tumor Size, Stage, and Treatment Type. The analysis demonstrates survival analysis techniques such as Kaplan-Meier curves and Cox proportional hazards models.
+This project analyzes breast cancer patient data to explore factors affecting survival. The analysis demonstrates survival analysis techniques such as Kaplan-Meier curves and Cox proportional hazards models.
 
 **Note:** The code and report are written in **Greek**.  
 **Data Note:** The dataset used in this project is **simulated** based on real studies, as explained within the analysis files.
