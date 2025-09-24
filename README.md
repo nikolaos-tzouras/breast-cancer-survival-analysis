@@ -20,8 +20,7 @@ This project analyzes breast cancer patient data to explore factors affecting su
 - `Dataset creation code.txt` → Code used to generate the dataset  
 
 ## Tools & Methods
-- R packages: survival, survminer, dplyr, ggplot2, randomForestSRC  
-- Descriptive statistics and visualizations  
+- R packages: survival, survminer, dplyr, ggplot2, randomForestSRC    
 - Kaplan-Meier survival curves and log-rank tests  
 - Cox proportional hazards regression modeling  
 - Interaction models to examine combined effects of covariates  
