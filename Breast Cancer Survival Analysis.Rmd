@@ -1,0 +1,610 @@
+---
+title: "Ανάλυση Επιβίωσης στον Καρκίνο του Μαστού"
+author: "Νικόλαος Τζούρας"
+date: "16/9/2025"
+output: 
+   html_document:
+
+---
+  <style>
+  body, p, h1, h2, h3, h4, h5, h6, li {
+    font-family: "Arial", Times, serif;
+  }
+h1, h2, h3 {
+  font-weight: bold;
+  text-align: center;
+}
+h1 { font-size: 32px; }
+h2 { font-size: 28px; }
+h3 { font-size: 24px; }
+code { font-family: Consolas, monospace; }
+</style>
+
+
+---
+
+## 1. Εισαγωγή
+
+Καρκίνος είναι μια ομάδα ασθενειών που χαρακτηρίζονται από αφύσικη κυτταρική ανάπτυξη και την εξάπλωση αυτής σε άλλα μέρη του σώματος. Η παρούσα μελέτη επικεντρώνεται ειδικότερα στον **Καρκίνο του Μαστού**. 
+
+Είναι ο πιο διαδεδομένος σε γυναικείο πληθυσμό καρκίνος παγκοσμίως. Αποτελεί συνολικά τη δεύτερη αιτία θανάτου των γυναικών από κακοηθές νεόπλασμα και την πρώτη αιτία θανάτου για γυναίκες μεταξύ 45-60 ετών.
+
+
+Σκοπός της μελέτης είναι η εφαρμογή και αξιολόγηση μεθόδων ανάλυσης επιβίωσης *(survival analysis)* σε ένα προσομοιωμένο σύνολο δεδομένων ασθενών με καρκίνο του μαστού. Το dataset βασίζεται σε επιδημιολογικές κατανομές και στοιχεία από έγκυρες πηγές για τις χρησιμοποιούμενες μεταβλητές. Ειδικότερα, επιδιώκεται η εκτίμηση του χρόνου επιβίωσης, η σύγκριση της επιβίωσης μεταξύ διαφορετικών σταδίων καρκίνου και θεραπευτικών ομάδων, καθώς και η αναγνώριση κλινικών και δημογραφικών παραγόντων που επηρεάζουν τον κίνδυνο θανάτου ή υποτροπής.
+
+
+### Ερευνητικά ερωτήματα 
+Βάσει του σκοπού της μελέτης, τα κύρια ερευνητικά ερωτήματα είναι:  
+- Ποια δημογραφικά και κλινικά χαρακτηριστικά επηρεάζουν τον χρόνο επιβίωσης των ασθενών και πώς διαφέρουν οι πιθανότητες επιβίωσης μεταξύ διαφορετικών σταδίων της νόσου και θεραπευτικών ομάδων;  
+- Ποιοι παράγοντες αποτελούν σημαντικούς προγνωστικούς δείκτες για την επιβίωση, λαμβάνοντας υπόψη την επίδραση των υπόλοιπων μεταβλητών;  
+- Υπάρχει αλληλεπίδραση μεταξύ σταδίου καρκίνου και θεραπευτικής ομάδας;  
+- Πώς διαφέρει η επιβίωση μεταξύ ανδρών και γυναικών, λαμβάνοντας υπόψη το υπερβολικά μικρό ποσοστό ανδρών στο σετ δεδομένων;  
+
+
+---
+
+## 2. Δεδομένα
+Για την ανάλυση, δημιουργήθηκε ενα προσομοιωμένο σετ δεδομένων, στο προγραμματιστικό περιβάλλον της R, ώστε τα δεδομένα που θα χρησιμοποιηθούν να εκλάβουν ένα ρεαλιστικό πόρισμα για το survival analysis. Η κατασκευή του έγινε με τρόπο ώστε να αντικατοπτρίζει τις κατανομές που παρατηρούνται σε πραγματικές κλινικές μελέτες και εθνικά δεδομένα. Οι μεταβλητές και η προέλευση τους περιγράφονται παρακάτω, μαζί με τις τιμές που χρησιμοποιήθηκαν για την προσομοίωση:
+
+
+1. **Cancer Stage (Localized, Regional, Distant, Unknown)**: Αντιπροσωπεύει το στάδιο διάγνωσης του καρκίνου, από περιορισμένο τοπικό όγκο έως εκτεταμένες μεταστάσεις. Τα ποσοστά επιλέχθηκαν από την μελέτη American Cancer Society (2024-2025), όπου χρησιμοποιήθηκαν και για τον καθορισμό των συντελεστών κινδύνου, ώστε οι ασθενείς με πιο προχωρημένο στάδιο καρκίνου να εμφανίζουν υψηλότερη πιθανότητα θανάτου.  
+
+2. **Start date**: Παρέχει την ημερομηνία διάγνωσης του κάθε ασθενή, και κυμαίνονται με τυχαία κατανομή από 01/01/2020 έως και 16/09/2025, δηλαδή έως και την ημέρα που διεξάχθηκε η παρούσα μελέτη, ώστε να μιμείται πραγματική χρονική κατανομή νέων διαγνώσεων.  
+
+3. **Event/Status (Dead/Alive)**: Η μεταβλητή **event** παίρνει τις τιμές 1=θάνατος και 0=ζωντανός, ενώ η ίδια πληροφορία αποδίδεται και στην μεταβλητή **status** (Dead/Alive). Η κατανομή τους προσομοιώθηκε βάσει πιθανοτήτων ανά στάδιο καρκίνου (American Cancer Society 2024-2025).    
+
+4. **Time to event**: Μας παρέχει δεδομένα για την διάρκεια μηνών μέχρι ο ασθενής είτε να απεβιώσει είτε να παραμένει ζωντανός στην τελευταία παρακολούθηση. Για κάθε μια κατηγορία υπολογίζεται διαφορετικά. Για ασθενείς που απεβίωσαν προσομοιώνεται με εκθετική κατανομή χρησιμοποιώντας τους συντελεστές κινδύνου που αναφέρθηκαν στο στάδιο διάγνωσης. Ο χρόνος για κάθε στάδιο περιορίζεται με ελάχιστες και μέγιστες τιμές για ρεαλισμό. Ασθενείς που παραμένουν ζωντανοί, έχουν διάρκεια μηνών ίση με τον χρόνο της ημερομηνίας διάγνωσης έως την ημέρα που διεξάχθηκε η έρευνα (16/09/2025).   
+
+
+5. **Event date**: Η ημερομηνία εμφάνισης του γεγονότος (θάνατος ή τελευταία παρακολούθηση). Υπολογίζεται ως: event_date = start_date + time_to_event × 30,416 ημέρες. 
+
+6. **Age**: Η ηλικία του ασθενούς κατά τη διάγνωση. Οι τιμές στα δεδομένα κυμαίνονται μεταξύ 40 και 80 ετών, ώστε να αντανακλούν τις ηλικιακές ομάδες όπου εμφανίζεται συχνότερα καρκίνος του μαστού και να αποφευχθούν μη ρεαλιστικές περιπτώσεις θανάτου.  
+
+7. **Sex**: Το φύλο του ασθενούς. Βάσει επιδημιολογικών δεδομένων, το 99% των περιστατικών αφορά γυναίκες και το 1% άντρες.  
+
+8. **Smoker (Yes/No)**: Καταγράφει αν ο ασθενής είναι καπνιστής. Σύμφωνα με την έκθεση του ΟΟΣΑ για τον καρκίνο στην Ελλάδα (OECD Greece 2025), το 25% του πληθυσμού καπνίζει.  
+
+9. **Family history (Yes/No)**: Υποδηλώνει αν ο ασθενής έχει οικογενιακό ιστορικό καρκίνου του μαστού. Βάσει μελέτης Nature (2021), το ποσοστό κυμαίνεται μεταξύ 5-10%, και στην μελέτη προσομοιώθηκε ως 7,5%.  
+
+10. **Chemotherapy (Yes/No)**: Καταγράφει αν ο ασθενής έλαβε χημειοθεραπεία. Σύμφωνα με την μελέτη Breast Cancer Research (2024), το αντίστοιχο ποσοστό ανέρχεται σε 38,9%.  
+
+11. **Treatment group (Control/Experimental)**: Οι ασθενείς χωρίστηκαν σε δύο θεραπευτικές ομάδες. Η ομάδα *Control* περιλαμβάνει όσους έλαβαν καθιερωμένες θεραπείες (π.χ. χημειοθεραπέια), ενώ η ομάδα *Experimental* περιλαμβάνει ασθενείς που έλαβαν νεότερες , υπό μελέτη θεραπείες. Για λόγους προσομοίωσης, τα ποσοστά κατανεμήθηκαν ισομερώς (50/50).  
+
+12. **BMI & BMI_change**: Ο δείκτης μάζας σώματος (Body Mass Index) πριν και μετά τη θεραπεία. Οι αρχικές τιμές κυμαίνονται από 18 έως 40. Η μεταβολή του BMI προσομοιώθηκε με βάση το στάδιο καρκίνου και την ηλικία, σύμφωνα με δημοσιευμένες συσχετίσεις μεταξύ καρκίνου του μαστού, ηλικία και μεταβολών σωματικού βάρους.  
+
+13. **Tumor size (cm)**: Αντιπροσωπεύει το μέγεθος του όγκου (σε εκατοστά). Οι μεγαλύτερες διαστάσεις αντιστοιχούν σε ασθενείς με *Distant* στάδιο, ενώ οι μικρότερες σε ασθενείς με *Localized* στάδιο καρκίνου.  
+
+14. **Physical activity (Low/Medium/High)**: Φυσική δραστηριότητα ασθενή κατανεμημένη βασισμένη σε πληθυσμιακά δεδομένα για τον ελληνικό πληθυσμό.  
+
+15. **ECOG (0-4)**: Δείκτης λειτουργικής κατάστασης ασθενούς (Easter Cooperative Oncology Group Performance Status), όπου *0=πλήρως δραστήριος* και *4=σοβαρά περιορισμένος*. Οι τιμές προσομοιώθηκαν με βάρη ανά στάδιο καρκίνου. Δεν χρησιμοποιήθηκε η κατηγορία 5, καθώς αυτή αντιστοιχεί σε θάνατο, ο οποίος καλύπτεται ήδη από την μεταβλητή **status**.  
+
+---
+
+## 3. Μεθοδολογία
+
+Η ανάλυση πραγματοποιήθηκε στο λογισμικό R με χρήση διάφορων πακέτων και βιβλιοθηκών για γραφική απεικόνιση και έλεγχο παραδοχών.  
+
+Ακολουθήθηκαν τα εξής βήματα:
+
+- Εκτίμηση επιβίωσης (Kaplan-Meier): Υπολογίστηκαν καμπύλες Kaplan-Meier για διάφορες υποομάδες ασθενών (φύλο, στάδιο καρκίνου, κάπνισμα κ.λπ.). Οι καμπύλες συνοδεύτηκαν από πίνακες κινδύνου (risk tables) και διαστήματα εμπιστοσύνης 95%.  
+
+- Σύγκριση καμπυλών: Εφαρμόστηκε Log-rank test για να εξετάσει αν οι διαφορές μεταξύ ομάδων στις καμπύλες Kaplan-Meier ήταν στατιστικά σημαντικές.  
+
+- Μονοπαραγοντικά Μοντέλα Cox (Univariable Cox Regression): Εκτιμήθηκαν χωριστά τα μοντέλα Cox για κάθε ανεξάρτητη μεταβλητή (ηλικία, φύλο, στάδιο καρκίνου, θεραπευτική ομάδα κ.λπ.). Για κάθε μοντέλο αναφέρθηκαν οι Hazard Ratios (HR) με τα αντίστοιχα 95% CI και οι p-values.  
+
+- Πολυπαραγοντική Ανάλυση (Multivariable Cox Regression): Δημιουργήθηκε αρχικό πλήρες μοντέλο Cox με όλες τις κλινικές και δημογραφικές μεταβλητές. Έγινε έλεγχος πολυσυγγραμμικότητας με τον δείκτη VIF και χρησιμοποιήθηκε βηματική επιλογή (stepwise selection με AIC) για την επιλογή του βέλτιστου μοντέλου. Τα αποτελέσματα παρουσιάστηκαν μέσω forest plots.  
+
+- Έλεγχος παραδοχής αναλογικών κινδύνων (Proportional Hazards): Χρησιμοποιήθηκε το cox.zph test και γραφικές παραστάσεις των Schoenfeld residuals για να ελεγχθεί η εγκυρότητα της παραδοχής.    
+
+- Αλληλεπιδράσεις: Εξετάστηκε η αλληλεπίδραση μεταξύ θεραπευτικής ομάδας και σταδίου καρκίνου. Τα αποτελέσματα ερμηνεύτηκαν μέσω καμπυλών Kaplan-Meier και forest plot για το interaction model.  
+
+- Εναλλακτικά μοντέλα (Accelerated Failure Time - AFT): Εφαρμόστηκε μοντέλο AFT με log-logistic κατανομή για επαλήθευση των αποτελεσμάτων του Cox. Οι συντελεστές μετατράπηκαν σε Time Ratios για ευκολότερη ερμηνεία.  
+
+- Μηχανική Μάθηση - Random Survival Forests (RSF): Εφαρμόστηκε το μοντέλο Random Survival Forest με 1000 δέντρα για να διερευνηθεί η σχετική σημασία των μεταβλητών. Υπολογίστηκαν δείκτες variable importance και πραγματοποιήθηκε πρόβλεψη καμπυλών επιβίωσης για υποσύνολο ασθενών.  
+
+---
+
+## 4. Αποτελέσματα/Ανάλυση Αποτελεσμάτων
+
+### 4.1. Kaplan-Meiers καμπύλες
+Η ανάλυση **Kaplan-Meier** χρησιμοποιήθηκε για να εκτιμηθεί η επιβίωση των ασθενών με καρκίνο του μαστού, ανάλογα με διάφορους παράγοντες. Για κάθε μεταβλητή παρουσιάζεται η επιβίωση με τη μορφή καμπύλης, συνοδευόμενη από *risk table* που δείχνει τον αριθμό των ασθενών σε κάθε χρονική στιγμή.
+Για κάθε παράγοντα πραγματοποιήθηκε και **Log-rank test** για τον έλεγχο στατιστικά σημαντικών διαφορών μεταξύ των κατηγοριών.  
+
+1. Η **Kaplan-Meier** ανάλυση φαίνεται να δείχνει ότι υπάρχει διαφορά μεταξύ των καμπύλων για κάθε φύλο. Το **Log-rank test** όμως επιβεβαιώνει ότι η διαφορά δεν είναι στατιστικά σημαντική (p-value≈0.3), υποδηλώνοντας ότι το φύλο δεν επηρεάζει σημαντικά τον χρόνο επιβίωσης στη μελέτη μας. Πρέπει να ληφθεί υπόψη ότι στο δείγμα της ανάλυσης, το ποσοστό των ανδρών ανέρχεται στο 1%, το οποίο είναι ελάχιστο σε σχέση με το ποσοστό των γυναικών και για αυτό μπορεί να φαίνεται στο γράφημα μια διαφορά μεταξύ των καμπυλών.  
+
+2. Ανά στάδιο καρκίνου, δείχνει σαφείς διαφορές στην επιβίωση. Ασθενείς με τοπικό στάδιο (Localized) παρουσιάζουν υψηλότερη πιθανότητα επιβίωσης σε σχέση με όσους έχουν περιφερικό (Regional) και ακόμα υψηλότερη σε σχέση με όσους έχουν απομακρυσμένο στάδιο (Distant). Το **Log-rank test** υποστηρίζει ότι οι διαφορές μεταξύ των κατηγοριών είναι στατιστικά σημαντικές (p-value<0.001).  
+
+3. Η επιβίωση φαίνεται ελαφρώς καλύτερη στην πειραματική ομάδα (Experimental) σε σχέση με την ομάδα ελέγχου (Control). Πράγμα που επιβεβαιώνεται μέσω του **Log-rank test** (p-value≈0.02), δηλαδή η ομάδα θεραπείας συμβάλλει στην πιθανότητα επιβίωσης σημαντικά.  
+
+4. Στο διάγραμμα καπνίσματος, αλλά και με βάση το **Log-rank test** (p-value≈0.2) μπορεί να επιβεβαιωθεί ότι δεν υπάρχουν ενδείξεις ότι το κάπνισμα αλλοιώνει με οποιοδήποτε τρόπο την πιθανότητα επιβίωσης ενός ασθενή με καρκίνο του μαστού.  
+
+5. Παρομοίως με το κάπνισμα, έχουμε ακριβώς ίδια αποτελέσματα και για πόσο δραστήριος είναι ο ασθενής. Είτε η φυσική του δραστηριότητα είναι υψηλή, είτε μέτρια, είτε χαμηλή, δεν υπάρχουν στατιστικά σημαντικές διαφορές (p-value≈0.4).  
+
+6. Το ενδεχόμενο οικογενειακό ιστορικού, επίσης δεν εμφανίζει στατιστικά σημαντικές διαφορές βάσει και του **Kaplan-Meier** γραφήματος αλλά και του **Log-rank test** (p-value≈0.7).  
+
+7. Η ανάλυση δεν δείχνει ουσιαστικές διαφορές στην επιβίωση μεταξύ ασθενών που έλαβαν ή δεν έλαβαν χημειοθεραπεία. Το **Log-rank test** επιβεβαιώνει ότι η διαφορά δεν είναι στατιστικά σημαντική (p-value≈0.4).  
+
+8. Για την μεταβλητή ECOG τα αποτελέσματα είναι όπως αναμένεται. Ασθενείς με δείκτη **ECOG=3** ή **ECOG=4** έχουν τις χαμηλότερες πιθανότητες επιβίωσης χωρίς να υπάρχει στατιστικά σημαντική διαφορά μεταξύ των δύο. Παρ'όλα αυτά μεταξύ αυτών υπάρχουν ενδείξεις στατιστικής σημαντικότητας στην διαφορά τους με τους δείκτες να έχουν τις τιμές **ECOG=0,1,2** , οι οποίες τιμές εμφανίζουν ισχυρότερη πιθανότητα επιβίωσης. Οι ενδείξεις αυτές επιβεβαιώνονται μέσω του **Log-rank test** (p-value<0.001).  
+
+
+
+### 4.2. Univariable Cox Παλινδρόμηση
+Για την εκτίμηση της επίδρασης των μεταβλητών στην επιβίωση των ασθενών χρησιμοποιήθηκε **Cox Proportional Hazards Regression Model**. Η παλινδρόμηση Cox επιτρέπει την εκτίμηση του κινδύνου (hazard) κάθε παράγοντα, λαμβάνοντας υπόψη την επίδραση όλων των άλλων παραγόντων στο μοντέλο.  
+
+- **Φύλο (Sex)**: Ο συντελεστής (coef) για τους άνδρες είναι **-0.3122**. Ένας αρνητικός συντελεστής υποδηλώνει ότι οι άνδρες έχουν χαμηλότερο κίνδυνο θανάτου σε σχέση με τις γυναίκες. Η χαμηλή στατιστική ισχύς οφείλεται στο πολύ μικρό ποσοστό ανδρών στο δείγμα (≈1%) σε σχέση με τις γυναίκες (reference), κάτι που εξηγεί το μεγάλο CI. Το hazard ratio (exp(coef)) είναι **0.732**, που σημαίνει ότι ο κίνδυνος εμφάνισης του συμβάντος για τους άνδρες είναι περίπου **27%** χαμηλότερος σχετικά με τις γυναίκες. Το διάστημα εμπιστοσύνης 95% για το HR ειναι **0.393-1.363**. Επειδή περιλαμβάνει την μονάδα, δεν μπορούμε να θεωρήσουμε τη διαφορά στατιστικά σημαντική. Τα συνολικά τέστ αξιολόγησης του μοντέλου (Likelihood ratio, Wald, Score/logrank) δίνουν p-values>0.3, υποδεικνύοντας ότι το μοντέλο με μόνο το φύλο δεν εξηγεί σημαντικά καλύτερα τον χρόνο επιβίωσης από το κενό μοντέλο. Το concordance (≈0.502) δείχνει πως το φύλο δεν αποτελεί χρήσιμο προγνωστικό παράγοντα σε αυτό το dataset.  
+
+- **Στάδιο Καρκίνου (Cancer_stage)**: Οι συντελεστές για **Localized** είναι **-3.001**, για **Regional** **-1.729**, για **Unknown** **-2.490**, με απομακρυσμένο στάδιο (Distant) ως reference. Τα Hazard Ratios είναι **0.050**, **0.178** και **0.083 αντίστοιχα**, πράγμα που δείχνει ότι οι ασθενείς με Localized ή Regional στάδιο έχουν σημαντικά χαμηλότερο κίνδυνο θανάτου σε σχέση με το απομακρυσμένο στάδιο. Τα 95% CI για τα HR δεν περιλαμβάνουν το **1**, επιβεβαιώνοντας έτσι την στατιστική σημασία. Τα p-value για κάθε κατηγορία αλλά και για κάθε τέστ αξιολόγησης (p-value<0.001) μας δείχνουν ότι το μοντέλο που περιλαμβάνει μόνο το στάδιο του καρκίνου, μας εξηγεί καλύτερα τον χρόνο επιβίωσης από το κενό μοντέλο. Με βάση το concordance (≈0.746) που είναι υψηλό, σημαίνει ότι το στάδιο έχει ισχυρή ικανότητα διάκρισης επιβίωσης. Αυτό είναι απολύτως συνεπές με την κλινική βιβλιογραφία, όπου οι ασθενείς με προχωρημένο (Distant) στάδιο παρουσιάζουν σημαντικά χειρότερη επιβίωση.  
+
+- **Θεραπευτικές Ομάδες (Treatment_group)**: Ο αρνητικός συντελεστής και το **HR=0.884** δείχνουν ότι η πειραματική ομάδα (Experimental) έχει περίπου **11.6%** μικρότερο instantaneous hazard σε σχέση με την ομάδα ελέγχου (Control). Το αποτέλεσμα είναι στατιστικά σημαντικό (p-value≈0.02) και όλα τα βασικά τέστ συμφωνούν ότι το μοντέλο με την ομάδα θεραπείας βελτιώνει την πρόβλεψη σε σχέση με το κενό μοντέλο. Το **concordance≈0.52** δείχνει μικρή αλλά υπαρκτή βελτίωση της διακριτικής ικανότητας συγκριτικά με την τυχαία πρόβλεψη.  
+
+- **Καπνιστές (Smoker)**: Το HR (≈1.09), υποδεικνύει **~9%** υψηλότερο hazard για τους καπνιστές, αλλά το αποτέλεσμα δεν είναι στατιστικά σημαντικό (p-value≈0.17) και το 95% CI περιλαμβάνει την μονάδα. Συνεπώς, με βάση το univariable μοντέλο, δεν υπάρχει επαρκής απόδειξη για ισχυρή ανεξάρτητη επίδραση του καπνίσματος στην επιβίωση.  
+
+- **Φυσική Δραστηριότητα (Physical_activity)**: Ουδεμία κατηγορία (Low ή Medium με High να είναι reference) εμφανίζει στατιστικά σημαντική διαφορά στον κίνδυνο (όλα τα p-value>0.5). Τα διαστήματα εμπιστοσύνης περικλείουν τη μονάδα. Στο univariable επίπεδο η φυσική δραστηριότητα, δεν φαίνεται να παρέχει καμία σημαντική προγνωστική πληροφόρηση.  
+
+- **Οικογενειακό Ιστορικό (Family_history)**: Το HR≈1.025 υποδεικνύει πολύ μικρή, μη-σημαντική αύξηση κινδύνου για όσους έχουν οικογενειακό ιστορικό. Το p-value≈0.80 και το 95% CI που περιλαμβάνει τη μονάδα δείχνουν ότι δεν υπάρχει αποδεδειγμένη επίδραση στο univariable επίπεδο, πιθανή έλλειψη ισχύος λόγω μικρού ποσοστού ασθενών με οικογενειακό ιστορικό καρκίνου.  
+
+- **Χημειοθεραπεία (Chemotherapy)**: Το HR≈0.962 δείχνει μικρή μη-σημαντική τάση μείωσης κινδύνου για όσους έλαβαν χημειοθεραπέια, αλλά το p-value≈0.47 και το 95% CI περιλαμβάνει τη μονάδα. Σε univariable επίπεδο δεν παρατηρείται στατιστικά αξιοσημείωτη επίδραση.  
+
+- **ECOG**: Το ECOG είναι ισχυρά και στατιστικά σημαντικά σχετιζόμενο με τη μείωση της επιβίωσης. Κάθε αύξηση μιας μονάδας στην κλίμακα ECOG σχετίζεται με **~40%** αύξηση του instantaneous hazard (HR≈1.40). Το πολύ μικρό p-value και το σχετικά υψηλό concordance (≈0.61) υποδεικνύουν ότι το ECOG είναι σημαντικός προγνωστικός δείκτης στο δείγμα.  
+
+- **Ηλικία (Age)**: Η ηλικία δεν φαίνεται να επηρεάζει σημαντικό τον κίνδυνο στο univariable cox με HR κοντά στην μονάδα, p-value≈0.72 και c-index≈0.50. Κλινικά, κάθε έτος αύξησης συνδέεται με **~0.08%** αλλαγή του Hazard, δηλαδή πρακτικά μηδαμινή επίδραση.  
+
+- **BMI**: Δεν παρατηρείται σημαντική συσχέτιση μεταξύ BMI και επιβίωσης σε univariable επίπεδο. Το HR υποδηλώνει πολύ μικρή μείωση του hazard ανά ομάδα BMI.  
+
+- **BMI_change_percent**: Το αποτέλεσμα είναι ισχυρό και στατιστικά σημαντικό. Για κάθε μία ποσοστιαίας μονάδας αύξηση στην μεταβλητή, συνδέεται περίπου με **~22%** μείωση του instantaneous hazard (HR≈0.78). Το c-index (0.673) δείχνει ότι η μεταβλητή προβλέπει καλά την επιβίωση.  
+
+- **BMI_change**: Το HR≈0.990 σημαίνει ότι κάθε μια μονάδα αύξησης στον νέο BMI συσχετίζεται με **~1%** μείωση του hazard και το αποτέλεσμα είναι στατιστικά σημαντικό (p-value≈0.117). Η επίδραση είναι μικρού μεγέθους αλλά στατιστικά αξιόπιστη.  
+
+- **Μέγεθος Όγκου (Tumor_size)**: Το μέγεθος του όγκου είναι ισχυρός προγνωστικός παράγοντας, όπως αναμενόμενο, και για κάθε **1cm** αύξηση του όγκου συνδέεται με **~27.4%** αύξηση του κινδύνου (HR≈1.274). Το αποτέλεσμα είναι εξαιρετικά σημαντικό στατιστικά (p-value<0.001) και παρουσιάζει υψηλό concordance (~0.69), που δείχνει καλή προγνωστική ικανότητα.  
+
+
+### 4.3.  Multivariable Cox Παλινδρόμηση/Forest Plot/Schoenfeld Residuals
+
+Για την εκτίμηση της ταυτόχρονης επίδρασης πολλών παραγόντων στην επιβίωση εφαρμόστηκε πολυπαραγοντική παλινδρόμηση Cox. Στο αρχικό μοντέλο τοποθετήθηκαν όλες οι μεταβλητές. Ο έλεγχος πολυσυγγραμμικότητας με GVIF έδειξε ότι οι περισσότερες μεταβλητές είχαν τιμές πολύ κοντά στη μονάδα, χωρίς ένδειξη αλληλεξάρτησης. Το **cancer_stage** είχε αυξημένο GVIF (4.19), ωστόσο λαμβάνοντας υπόψη τον βαθμό ελευθερίας (df=3), το προσαρμοσμένο GVIF ήταν μόλις 1.27, ένδειξη απουσίας σοβαρής πολυσυγγραμμικότητας. Αντίστοιχα, οι μεταβλητές **BMI_change_percent** και **tumor_size** εμφάνισαν ελαφρώς υψηλότερες τιμές (1.58 και 1.55 αντίστοιχα), παραμένοντας μέσα στο αποδεκτό όριο (<2). Συνεπώς δεν παρατηρείται πρόβλημα πολυσυγγραμμικότητας που να επηρεάζει την αξιοπιστία του μοντέλου. Με τη μέθοδο βηματικής επιλογής (stepwise AIC) καταλήξαμε σε ένα «καλύτερο» μοντέλο που περιλαμβάνει τις μεταβλητές **cancer_stage**, **treatment_group** και **smoker**.  
+
+- Με reference το Distant στάδιο, παρατηρείται μικρότερος κίνδυνος θανάτου στα άλλα στάδια, κάτι ρεαλιστικό με την κλινική πραγματικότητα, δηλαδή, όσο πιο πρώιμο το στάδιο, τόσο υψηλότερη η επιβίωση (Localized:HR=0.049 με 95% CI: 0.041-0.058, p-value<0.001) (Regional:HR=0.175 με 95% CI:0.147-0.208,p-value<0.001) (Unknown: HR=0.081 με 95% CI:0.057-0.115,p-value<0.001).  
+
+- Οι ασθενείς που ανήκαν στην πειραματική ομάδα είχαν **~15%** μικρότερο κίνδυνο θανάτου συγκριτικά με την ομάδα ελέγχου, εύρημα που καταδεικνύει πιθανό θεραπευτικό όφελος (Experimental:HR=0.848 με 95% CI:0.765-0.941,p-value≈0.002).  
+
+- Οι καπνιστές είχαν **~14%** αυξημένο κίνδυνο θανάτου σε σχέση με τους μη-καπνιστές. Το αποτέλεσμα είναι οριακά στατιστικά σημαντικό, δείχνοντας ότι το κάπνισμα παραμένει αρνητικός προγνωστικός παράγοντας ακόμα και μετά τον έλεγχο για το στάδιο και τη θεραπεία.  
+
+Τα συνολικά τέστ αξιολόγησης του μοντέλου (Likelihood ratio,Wald,Score) ήταν όλα πολύ στατιστικά σημαντικά (p-value<0.001) με Concordance=0.754 (se=0.008). Αυτό σημαίνει ότι το μοντέλο έχει καλή διακριτική ικανότητα, σε τυχαία επιλευγμένα ζεύγη ασθενών, το 75% των φορών το μοντέλο προβλέπει σωστά ποιος θα έχει νωρίτερα το συμβάν.  
+
+Το Forest Plot παρουσιάζει τα HR με τα 95% CI. Οι μπάρες για τα **cancer_stage** βρίσκονται ξεκάθαρα αριστερά της μονάδας (HR<1), δείχνοντας ισχυρό προστατευτικό αποτέλεσμα Localized, Regional, Unknown έναντι Distant. Η μπάρα της πειραματικής θεραπείας επίσης βρίσκεται κάτω από την μονάδα (HR<1), αν και η επίδραση είναι μέτρια. Αντίθετα, το κάπνισμα εμφανίζει HR>1, με το CI του να μην περιλαμβάνει τη μονάδα, επιβεβαιώνοντας τη στατιστική σημαντικότητα.  
+
+Ο έλεγχος proportional hazards (Schoenfeld residuals) γίνεται για την υπόθεση αναλογικότητας κινδύνου. Οι καμπύλες των καταλοίπων δεν φαίνεται να εμφανίζουν σημαντική απόκλιση από την μηδενική γραμμή. Για τις περισσότερες μεταβλητές δεν παρατηρείται σημαντική παραβίαση της παραδοχής (p-value>0.05). Ωστόσο, για το **cancer_stage** το p-value ήταν ουσιαστικά μηδέν, γεγονός που υποδηλώνει ότι η παραδοχή των αναλογικών κινδύνων δεν ισχύει. Αυτό σημαίνει ότι η επίδραση του σταδίου καρκίνου στην επιβίωση μεταβάλλεται με τον χρόνο.  
+
+
+### 4.4. Interaction Model (treatment_group*cancer_stage)
+
+Στο μοντέλο Cox με την αλληλεπίδραση μεταξύ θεραπευτικής ομάδας και στάδιο καρκίνου, τα αποτελέσματα αναδεικνύουν την συσχέτιση της πειραματικής θεραπείας με σημαντική μείωση του κινδύνου θανάτου στους ασθενείς με **Distant** στάδιο. Συγκεκριμένα, ο κύριος όρος για την πειραματική θεραπεία είχε συντελεστή **-0.432** που αντιστοιχεί σε HR ίσο με **0.649** (95% CI:0.48-0.87,p-value=0.004). Αυτό σημαίνει ότι οι ασθενείς με απομακρυσμένη νόσο που έλαβαν πειραματική θεραπεία είχαν περίπου **35%** χαμηλότερο κίνδυνο θανάτου σε σχέση με εκείνους που έλαβαν συμβατική θεραπεία.  
+
+Οι όροι αλληλεπίδρασης ήταν θετικοί, γεγονός που υποδηλώνει ότι η προστατευτική επίδραση του Experimental treatment σε λιγότερο προχωρημένα στάδια μειώνεται. Συγκεκριμένα, για το Localized, το HR του Experimental έναντι Control (reference) ήταν περίπου 0.887, ενώ το Regional 0.864 και για το Unknown η επίδραση ουσιαστικά μηδενίστηκε (HR≈1.03). Παρόλο που οι εκτιμήσεις φαίνεται να διαφοροποιούνται ως προς το θεραπευτικό αποτέλεσμα ανάλογα με το στάδιο, τα αντίστοιχα p-values για τους όρους αλληλεπίδρασης (p-value≈0.065 Localized, p-value≈0.10 Regional, p-value≈0.196 Unknown),  οριακά περιορίζουν τη στατιστική ισχύ των αποτελεσμάτων. Επιπλέον, ο καπνιστής αναδείχθηκε σε ανεξάρτητο παράγοντα κινδύνου, με HR≈1.14 (95% CI:1.01-1.28,p-value≈0.033), δηλαδή αύξηση κατά **14%** στο hazard θανάτου.  
+
+Βάσει του forest plot που υλοποιήθηκε για αυτό το μοντέλο, τα παραπάνω ευρήματα αναδεικνύονται με σαφήνεια. Οι μπάρες για το στάδιο του καρκίνου βρίσκονται κατά πολύ μακριά από τη μονάδα συγκριτικά με το στάδιο **Distant**, πράγμα που αντανακλά το γεγονός ότι παραμένει ο ισχυρότερος προγνωστικός παράγοντας του μοντέλου. Η μπάρα της πειραματικής θεραπευτικής ομάδας είναι επίσης κάτω από τη μονάδα, υποδεικνύοντας στατιστική σημαντικότητα, χωρίς όμως η απόσταση από τη μονάδα να είναι μεγάλη. Αντίθετα, οι όροι αλληλεπίδρασης εμφανίζονται γύρω από τη μονάδα με ευρύτερα διαστήματα εμπιστοσύνης, αντικατοπτρίζοντας έτσι την ετερογένεια της επίδρασης της θεραπείας ανά στάδιο αλλά χωρίς ισχυρή στατιστική τεκμηρίωση.  
+
+Τα παραπάνω αποτελέσματα, επίσης επιβεβαιώνονται και μέσω της καμπύλης Kaplan-Meier του μοντέλου. Οι αλληλεπιδράσεις για **Distant** στάδιο είναι ξεκάθαρα διαχωρισμένες στις δύο θεραπευτικές ομάδες με την **Experimental** να εμφανίζει μεγαλύτερη πιθανότητα επιβίωσης. Το ίδιο τεκμηριωμένο συμπέρασμα βγαίνει παρατηρώντας και τις αλληλεπιδράσης για τα στάδια **Regional** και **Localized** όπου η πειραματική θεραπεία παρουσιάζει οπτικά υψηλότερη πιθανότητα επιβίωσης με την πάροδο του χρόνου. Σε **Unknown** όμως αυτό δεν ισχύει, καθώς οι δύο καμπύλες των αλληλεπιδράσεων είναι σχεδόν ίσες διαγραμματικά.  
+
+
+### 4.5. Accelerated Failure Time (AFT) - Log-logistic
+
+Για να διερευνήσουμε την επιβίωση μέσα από ένα παραμετρικό πλαίσιο, εφαρμόσαμε το **Accelerated Failure Time (AFT)** μοντέλο με **log-logistic** κατανομή, ενσωματώνοντας το στάδιο καρκίνου, την ομάδα θεραπείας και το κάπνισμα. Το μοντέλο προσαρμόστηκε πολύ καλά στα δεδομένα, παρουσιάζοντας σαφή βελτίωση σε σχέση με το απλό intercept-only μοντέλο (likelihood ratio χ²=1175.2,p-value<0.001). Η εκτίμηση της παραμέτρου κλίμακας (0.817) επιβεβαίωσε ότι η log-logistic κατανομή ήταν κατάλληλη επιλογή.  
+
+Όταν οι συντελεστές μετατράπηκαν σε time ratios (exp(coef)), φάνηκε ότι το στάδιο της νόσου εξακολουθεί να είναι ο καθοριστικός παράγοντας της επιβίωσης. Συγκεκριμένα, οι ασθενείς με **Localized** στάδιο είχαν περίπου **44** φορές μεγαλύτερη αναμενόμενη διάρκεια επιβίωσης συγκριτικά με εκείνους στο απομακρυσμένο στάδιο (reference), οι ασθενείς με **Regional** περίπου **9,6** φορές μεγαλύτερη, και οι ασθενείς με **Unknown** περίπου **23** φορές μεγαλύτερη. Όλες οι εκτιμήσεις ήταν εξαιρετικά στατιστικά σημαντικές (p-value<0.001).  
+
+Η πειραματική θεραπεία εμφάνισε μια πιο μετριοπαθή αλλά θετική επίδραση, με **16%** αύξηση της αναμενόμενης διάρκειας επιβίωσης (time ratio=1.16,p-value=0.0079). Αντίθετα, το κάπνισμα δεν φάνηκε να επηρεάζει σημαντικά το χρόνο επιβίωσης στο πλαίσιο του AFT (time ratio=0.93,p-value=0.259). Το εύρημα αυτό δείχνει ότι η αρνητική επίδραση του καπνίσματος μπορεί να αποτυπώνεται καλύτερα σε ημι-παραμετρικά μοντέλα όπως το Cox, παρά σε παραμετρικά.  
+
+Συνολικά, το **AFT log-logistic** μοντέλο μας έδωσε μια εναλλακτική αλλά συνεπή εικόνα. Το στάδιο καρκίνου παραμένει ο σημαντικότερος προγνωστικός παράγοντας, η πειραματική θεραπεία παρουσιάζει σαφή, έστω και μέτρια, θετική επίδραση, ενώ ο ρόλος του καπνίσματος παραμένει αμφιλεγόμενος ανάλογα με το στατιστικό πλαίσιο που χρησιμοποιείται.  
+
+
+### 4.6. Random Survival Forest (RSF) - Machine Learning
+
+Στη συνέχεια, εφαρμόστηκε μια μη-παραμετρική, machine learning προσέγγιση μέσω **Random Survival Forests (RSF)**, με 1000 δέντρα και ως προγνωστικές μεταβλητές το στάδιο καρκίνου, την ομάδα θεραπείας, το κάπνισμα, το BMI και το ECOG. Το μοντέλο εμφάνισε μέτρια έως καλή προγνωστική ικανότητα (σφάλμα πρόβλεψης≈0.64,CRPS=1.58).  
+
+Η ανάλυση μεταβλητότητας (variable importance) επιβεβαίωσε για ακόμη μια φορά ότι το στάδιο καρκίνου είναι μακράν ο ισχυρότερος προγνωστικός παράγοντας (importance=0.296). Αντίθετα, η ομάδα θεραπείας, το κάπνισμα και το BMI εμφάνισαν αρνητικές τιμές importance, γεγονός που υποδηλώνει ότι δεν συνέβαλαν ουσιαστικά στην ακρίβεια του μοντέλου, ίσως μάλιστα εισάγοντας περισσότερο «θόρυβο». Το ECOG είχε μια μικρή αλλά θετική συμβολή (≈0.02), υποστηρίζοντας τον ρόλο του ως δευτερεύοντος προγνωστικού δείκτη.  
+
+Με απλά λόγια, το RSF μοντέλο, παρά τη διαφορετική φιλοσοφία του σε σχέση με τα παραδοσιακά στατιστικά μοντέλα, οδήγησε στο ίδιο βασικό συμπέρασμα: η πορεία επιβίωσης καθορίζεται πρωτίστως από το στάδιο της νόσου. Οι υπόλοιποι παράγοντες διαδραματίζουν δευτερεύοντα ή αμελητέο ρόλο στην πρόβλεψη. Αυτό αναδεικνύει τόσο τη δύναμη του RSF ως εργαλείου πρόβλεψης όσο και τη σταθερότητα του ευρήματος ότι το στάδιο καρκίνου είναι ο θεμελιώδης παράγοντας για την πρόγνωση.  
+
+
+---
+
+## 5. Βιβλιογραφία
+
+- **American Cancer Society**. *Breast Cancer Facts & Figures 2024.*  
+Διαθέσιμο: [https://www.cancer.org/content/dam/cancer-org/research/cancer-facts-and-statistics/breast-cancer-facts-and-figures/2024/breast-cancer-facts-and-figures-2024.pdf]  
+
+- **OECD**. *Health at a Glance 2023: Greece Highlights.* OECD Publishing, 2025. 
+Διαθέσιμο: [https://www.oecd.org/content/dam/oecd/en/publications/reports/2025/07/health-at-a-glance-2023_39bcb58d/greece_df015b31/c59c9ebe-en.pdf]  
+
+- **Nature** (2021). *Family history and breast cancer risk.* *Scientific Reports.*  
+Διαθέσιμο: [https://www.nature.com/articles/s41598-021-85899-8]  
+
+- **Breast Cancer Research** (2024). *Latest advances in breast cancer research.*  
+Διαθέσιμο: [https://breast-cancer-research.biomedcentral.com/articles/10.1186/s13058-024-01822-9] 
+---
+
+## 6. Κώδικας/Πίνακες Αποτελεσμάτων/Διαγράμματα  
+
+```{r setup, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(janitor)
+library(tidyquant)
+library(patchwork)
+library(survival)
+library(survminer)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(MASS)
+library(car)
+library(Hmisc)
+library(ggplot2)
+library(flexsurv)
+library(randomForestSRC)
+
+
+data <- read.csv("breast_cancer_survival.csv") 
+
+
+
+#KM_SEX
+sfit_sex<-survfit(Surv(time_to_event,event)~sex,data=data)
+KM_sex<-ggsurvplot(
+  sfit_sex,
+  conf.int=TRUE,
+  data=data,
+  risk.table = TRUE
+)
+
+KM_sex_plot<-KM_sex$plot + 
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  labs(title="Kaplan-Meier Sex Curve Plot")
+
+KM_sex_table<-KM_sex$table +
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  theme(panel.grid = element_blank())
+
+KM_sex_plot/KM_sex_table + plot_layout(heights=c(4,1))
+
+#Log-rank test sex
+survdiff(Surv(time_to_event, event) ~ sex, data = data)
+
+#Cox regression model sex
+cox_sex <- coxph(Surv(time_to_event, event) ~ sex, data = data)
+summary(cox_sex)
+
+
+#KM_CANCER STAGE
+sfit_cancer_stage<-survfit(Surv(time_to_event,event)~cancer_stage,data=data)
+KM_cancer_stage<-ggsurvplot(
+  sfit_cancer_stage,
+  conf.int=TRUE,
+  data=data,
+  risk.table = TRUE
+)
+
+KM_cancer_stage_plot<-KM_cancer_stage$plot + 
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  labs(title="Kaplan-Meier Cancer Stage Curve Plot")
+
+KM_cancer_stage_table<-KM_cancer_stage$table +
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  theme(panel.grid = element_blank())
+
+KM_cancer_stage_plot/KM_cancer_stage_table + plot_layout(heights=c(2,1))
+
+#Log-rank test cancer_stage
+survdiff(Surv(time_to_event, event) ~ cancer_stage, data = data)
+
+#Cox regression model cancer_stage
+cox_cancer_stage <- coxph(Surv(time_to_event, event) ~ cancer_stage, data = data)
+summary(cox_cancer_stage)
+
+
+#KM_treatment group
+sfit_tg<-survfit(Surv(time_to_event,event)~treatment_group,data=data)
+KM_tg<-ggsurvplot(
+  sfit_tg,
+  conf.int=TRUE,
+  data=data,
+  risk.table = TRUE
+)
+
+KM_tg_plot<-KM_tg$plot + 
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  labs(title="Kaplan-Meier Treatment Group Curve Plot")
+
+KM_tg_table<-KM_tg$table +
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  theme(panel.grid = element_blank())
+
+KM_tg_plot/KM_tg_table + plot_layout(heights=c(4,1))
+
+#Log-rank test treatment_group
+survdiff(Surv(time_to_event, event) ~ treatment_group, data = data)
+
+#Cox regression model treatment_group
+cox_tg <- coxph(Surv(time_to_event, event) ~ treatment_group, data = data)
+summary(cox_tg)
+
+
+#KM_smoker
+sfit_smoker<-survfit(Surv(time_to_event,event)~smoker,data=data)
+KM_smoker<-ggsurvplot(
+  sfit_smoker,
+  conf.int=TRUE,
+  data=data,
+  risk.table = TRUE
+)
+
+KM_smoker_plot<-KM_smoker$plot + 
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  labs(title="Kaplan-Meier Smoker Curve Plot")
+
+KM_smoker_table<-KM_smoker$table +
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  theme(panel.grid = element_blank())
+
+KM_smoker_plot/KM_smoker_table + plot_layout(heights=c(4,1))
+
+#Log-rank test smoker
+survdiff(Surv(time_to_event, event) ~ smoker, data = data)
+
+#Cox regression model smoker
+cox_smoker <- coxph(Surv(time_to_event, event) ~ smoker, data = data)
+summary(cox_smoker)
+
+
+#KM_physical activity
+sfit_pa<-survfit(Surv(time_to_event,event)~physical_activity,data=data)
+KM_pa<-ggsurvplot(
+  sfit_pa,
+  conf.int=TRUE,
+  data=data,
+  risk.table = TRUE
+)
+
+KM_pa_plot<-KM_pa$plot + 
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  labs(title="Kaplan-Meier Physical Activity Curve Plot")
+
+KM_pa_table<-KM_pa$table +
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  theme(panel.grid = element_blank())
+
+KM_pa_plot/KM_pa_table + plot_layout(heights=c(3,1))
+
+#Log-rank test physical_activity
+survdiff(Surv(time_to_event, event) ~ physical_activity, data = data)
+
+#Cox regression model physical_activity
+cox_pa <- coxph(Surv(time_to_event, event) ~ physical_activity, data = data)
+summary(cox_pa)
+
+
+#KM_family history 
+sfit_fh<-survfit(Surv(time_to_event,event)~family_history,data=data)
+KM_fh<-ggsurvplot(
+  sfit_fh,
+  conf.int=TRUE,
+  data=data,
+  risk.table = TRUE
+)
+
+KM_fh_plot<-KM_fh$plot + 
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  labs(title="Kaplan-Meier Family History Curve Plot")
+
+KM_fh_table<-KM_fh$table +
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  theme(panel.grid = element_blank())
+
+KM_fh_plot/KM_fh_table + plot_layout(heights=c(4,1))
+
+#Log-rank test family_history
+survdiff(Surv(time_to_event, event) ~ family_history, data = data)
+
+#Cox regression model family_history
+cox_fh <- coxph(Surv(time_to_event, event) ~ family_history, data = data)
+summary(cox_fh)
+
+
+#KM_chemotherapy
+sfit_chemo<-survfit(Surv(time_to_event,event)~chemotherapy,data=data)
+KM_chemo<-ggsurvplot(
+  sfit_chemo,
+  conf.int=TRUE,
+  data=data,
+  risk.table = TRUE
+)
+
+KM_chemo_plot<-KM_chemo$plot + 
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  labs(title="Kaplan-Meier Chemotherapy Curve Plot")
+
+KM_chemo_table<-KM_chemo$table +
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  theme(panel.grid = element_blank())
+
+KM_chemo_plot/KM_chemo_table + plot_layout(heights=c(4,1))
+
+#Log-rank test chemotherapy
+survdiff(Surv(time_to_event, event) ~ chemotherapy, data = data)
+
+#Cox regression model chemotherapy
+cox_chemo <- coxph(Surv(time_to_event, event) ~ chemotherapy, data = data)
+summary(cox_chemo)
+
+
+
+#KM_ECOG
+sfit_ECOG<-survfit(Surv(time_to_event,event)~ECOG,data=data)
+KM_ECOG<-ggsurvplot(
+  sfit_ECOG,
+  conf.int=TRUE,
+  data=data,
+  risk.table = TRUE
+)
+
+KM_ECOG_plot<-KM_ECOG$plot + 
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  labs(title="Kaplan-Meier ECOG Curve Plot")
+
+KM_ECOG_table<-KM_ECOG$table +
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  theme(panel.grid = element_blank())
+
+KM_ECOG_plot/KM_ECOG_table + plot_layout(heights=c(2,1))
+
+#Log-rank test ECOG
+survdiff(Surv(time_to_event, event) ~ ECOG, data = data)
+
+
+#Cox regression model ECOG
+cox_ECOG <- coxph(Surv(time_to_event, event) ~ ECOG, data = data)
+summary(cox_ECOG)
+
+
+
+#Cox regression model age
+cox_age <- coxph(Surv(time_to_event, event) ~ age, data = data)
+summary(cox_age)
+
+
+#Cox regression model BMI
+cox_BMI <- coxph(Surv(time_to_event, event) ~ BMI, data = data)
+summary(cox_BMI)
+
+
+#Cox regression model BMI_change_percent
+cox_BMI_cp <- coxph(Surv(time_to_event, event) ~ BMI_change_percent, data = data)
+summary(cox_BMI_cp)
+
+
+
+#Cox regression model BMI_change
+cox_BMI_change <- coxph(Surv(time_to_event, event) ~ BMI_change, data = data)
+summary(cox_BMI_change)
+
+#Cox regression model tumor_size
+cox_tumor <- coxph(Surv(time_to_event, event) ~ tumor_size, data = data)
+summary(cox_tumor)
+
+
+
+
+##Multivariable Cox regression
+full_model <- coxph(Surv(time_to_event, event) ~ age + sex + cancer_stage +
+                      treatment_group + BMI + BMI_change_percent +
+                      tumor_size + smoker + physical_activity +
+                      family_history + chemotherapy + ECOG, data = data)
+vif(full_model)
+
+step_model <- stepAIC(full_model, direction = "both")
+summary(step_model)
+
+#Best through AIC
+full_model <- coxph(Surv(time_to_event, event) ~ cancer_stage + treatment_group + smoker, data = data)
+
+step_model <- stepAIC(full_model, direction = "both")
+summary(step_model)    # Να δεις HR, CI, p-values
+ggforest(full_model, data = data)   # Forest plot για παρουσίαση
+
+```{r ph_plot, fig.width=14, fig.height=10}
+ph_test <- cox.zph(full_model)
+ggcoxzph(ph_test)
+
+
+
+# Cox με interaction
+interaction_model <- coxph(Surv(time_to_event, event) ~ treatment_group * cancer_stage + smoker, data = data)
+summary(interaction_model)
+# Forest plot για interaction
+ggforest(interaction_model, data = data)
+
+# Kaplan-Meier για interaction treatment_group * cancer_stage
+sfit_interaction <- survfit(Surv(time_to_event, event) ~ treatment_group + cancer_stage, data = data)
+
+KM_interaction <- ggsurvplot(
+  sfit_interaction,
+  conf.int = TRUE,
+  data = data,
+  palette = "Dark2"
+)
+
+KM_interaction_plot <- KM_interaction$plot +
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  labs(title = "Kaplan-Meier Curve Plot: Treatment Group * Cancer Stage")
+
+KM_interaction_table <- KM_interaction$table +
+  theme_tq() +
+  scale_fill_tq() +
+  scale_color_tq() +
+  theme(panel.grid = element_blank())
+
+KM_interaction_plot / KM_interaction_table + plot_layout(heights = c(2,1))
+
+
+
+# Φιλτράρουμε δεδομένα γιατί AFT δεν δέχεται 0 στον χρόνο επιβίωσης
+data_aft <- data %>% filter(time_to_event > 0) %>%
+  mutate_if(is.character, as.factor)
+
+#Accelerated Failure Time (AFT) model – log-logistic
+aft_model_ll <- survreg(
+  Surv(time_to_event, event) ~ cancer_stage + treatment_group + smoker,
+  data = data_aft,
+  dist = "loglogistic"
+)
+summary(aft_model_ll)
+
+# Μετατροπή συντελεστών σε Time Ratios
+exp(coef(aft_model_ll))
+
+# Random Survival Forest (Machine Learning)
+rf_model <- rfsrc(
+  Surv(time_to_event, event) ~ cancer_stage + treatment_group + smoker + BMI + ECOG,
+  data = data_aft,
+  ntree = 1000,
+  importance = TRUE
+)
+
+# Variable importance
+rf_model$importance
+
+# Predicted survival for first 10 patients
+predict(rf_model, newdata = data_aft[1:10, ])

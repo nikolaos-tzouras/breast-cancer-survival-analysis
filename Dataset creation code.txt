@@ -1,0 +1,159 @@
+library(dplyr)
+
+set.seed(036)
+n_patients <- 3500
+
+# -----------------------------
+# Cancer stage probabilities
+# -----------------------------
+cancer_stage <- sample(c("Localized","Regional","Distant","Unknown"),
+                       n_patients, replace=TRUE,
+                       prob=c(0.66,0.25,0.06,0.03))
+
+# Hazard multipliers για dead patients
+base_hazard <- 0.5
+hazard <- ifelse(cancer_stage=="Localized", base_hazard,
+                 ifelse(cancer_stage=="Regional", base_hazard*1,
+                        ifelse(cancer_stage=="Distant", base_hazard*3,
+                               base_hazard*1.5)))
+
+# -----------------------------
+# Start dates (διάγνωση 2020-2025)
+# -----------------------------
+start_dates <- as.Date("2020-01-01") + 
+  sample(0:(as.Date("2025-09-16")-as.Date("2020-01-01")), n_patients, replace = TRUE)
+
+# Event probability ανά στάδιο
+event_prob <- ifelse(cancer_stage=="Localized", 0.3,
+                     ifelse(cancer_stage=="Regional", 0.6,
+                            ifelse(cancer_stage=="Distant", 0.9,0.5)))
+
+# Status: Dead = 1, Alive = 0
+event <- rbinom(n_patients, 1, event_prob)
+status <- ifelse(event==1, "Dead","Alive")
+
+# -----------------------------
+# Time to event / censoring
+# -----------------------------
+time_to_event <- numeric(n_patients)
+today <- as.Date("2025-09-16")
+
+for(i in 1:n_patients){
+  if(event[i]==1){ # Dead
+    min_time <- ifelse(cancer_stage[i]=="Localized", 12,
+                       ifelse(cancer_stage[i]=="Regional", 6,
+                              ifelse(cancer_stage[i]=="Distant", 1, 6)))
+    max_time <- ifelse(cancer_stage[i]=="Localized", 60,
+                       ifelse(cancer_stage[i]=="Regional", 48,
+                              ifelse(cancer_stage[i]=="Distant", 36, 48)))
+    t <- rexp(1, rate = hazard[i])
+    t <- pmax(t, min_time)
+    t <- pmin(t, max_time)
+    time_to_event[i] <- round(t)
+  } else { # Alive / censored
+    max_followup <- as.numeric(today - start_dates[i])/30.416
+    time_to_event[i] <- round(max_followup)
+  }
+}
+
+# Event dates με όριο το σήμερα
+event_dates <- start_dates + round(time_to_event * 30.416)
+event_dates <- pmin(event_dates, today)
+
+# -----------------------------
+# Άλλες μεταβλητές
+# -----------------------------
+age <- sample(40:80, n_patients, replace=TRUE)
+sex <- sample(c("Female","Male"), n_patients, replace=TRUE, prob=c(0.99,0.01))
+treatment_group <- sample(c("Control","Experimental"), n_patients, replace=TRUE)
+bmi <- round(runif(n_patients, 18, 40),1)
+smoker <- sample(c("No","Yes"), n_patients, replace=TRUE, prob=c(0.75,0.25))
+physical_activity <- sample(c("Low","Medium","High"), n_patients, replace=TRUE, prob=c(0.3,0.5,0.2))
+family_history <- sample(c("No","Yes"), n_patients, replace=TRUE, prob=c(0.925,0.075))
+chemotherapy <- sample(c("No","Yes"), n_patients, replace=TRUE, prob=c(0.611,0.389))
+
+# -----------------------------
+# Tumor size συμβατό με stage
+# -----------------------------
+tumor_size <- numeric(n_patients)
+tumor_size[cancer_stage=="Localized"] <- round(runif(sum(cancer_stage=="Localized"),0.5,5),1)
+tumor_size[cancer_stage=="Regional"]  <- round(runif(sum(cancer_stage=="Regional"),2,8),1)
+tumor_size[cancer_stage=="Distant"]   <- round(runif(sum(cancer_stage=="Distant"),4,15),1)
+tumor_size[cancer_stage=="Unknown"]   <- round(runif(sum(cancer_stage=="Unknown"),0.5,10),1)
+
+# -----------------------------
+# Age groups για BMI change
+# -----------------------------
+age_group <- cut(age, breaks=c(39,49,59,69,80), labels=c("40-49","50-59","60-69","70-80"))
+
+# -----------------------------
+# BMI change (%) και νέο BMI
+# -----------------------------
+BMI_change_percent <- numeric(n_patients)
+for(i in 1:n_patients){
+  BMI_change_percent[i] <- rnorm(1, mean = case_when(
+    cancer_stage[i]=="Localized" & age_group[i]=="40-49" ~ -1.5,
+    cancer_stage[i]=="Localized" & age_group[i]=="50-59" ~ -2,
+    cancer_stage[i]=="Localized" & age_group[i]=="60-69" ~ -2.5,
+    cancer_stage[i]=="Localized" & age_group[i]=="70-80" ~ -3,
+    
+    cancer_stage[i]=="Regional" & age_group[i]=="40-49" ~ -3,
+    cancer_stage[i]=="Regional" & age_group[i]=="50-59" ~ -4,
+    cancer_stage[i]=="Regional" & age_group[i]=="60-69" ~ -5,
+    cancer_stage[i]=="Regional" & age_group[i]=="70-80" ~ -5.5,
+    
+    cancer_stage[i]=="Distant" & age_group[i]=="40-49" ~ -6,
+    cancer_stage[i]=="Distant" & age_group[i]=="50-59" ~ -7,
+    cancer_stage[i]=="Distant" & age_group[i]=="60-69" ~ -8,
+    cancer_stage[i]=="Distant" & age_group[i]=="70-80" ~ -9,
+    
+    cancer_stage[i]=="Unknown" ~ -3
+  ), sd=1.5)
+}
+
+BMI_change <- round(bmi * (1 + BMI_change_percent/100),1)
+
+# -----------------------------
+# ECOG performance status probabilistically ανά stage
+# -----------------------------
+ECOG <- numeric(n_patients)
+for(i in 1:n_patients){
+  probs <- switch(cancer_stage[i],
+                  "Localized" = c(0.5,0.3,0.2,0,0),
+                  "Regional"  = c(0.2,0.3,0.4,0.1,0),
+                  "Distant"   = c(0.1,0.1,0.4,0.3,0.1),
+                  "Unknown"   = c(0.25,0.25,0.25,0.15,0.1))
+  ECOG[i] <- sample(0:4, 1, prob=probs)
+}
+ECOG <- factor(ECOG, levels=0:4)
+
+# -----------------------------
+# Data frame
+# -----------------------------
+data <- data.frame(
+  patient_id = 1:n_patients,
+  age = age,
+  sex = sex,
+  cancer_stage = cancer_stage,
+  treatment_group = treatment_group,
+  start_date = start_dates,
+  event_date = event_dates,
+  time_to_event = time_to_event,
+  status = status,
+  bmi = bmi,
+  BMI_change_percent = round(BMI_change_percent,1),
+  BMI_change = BMI_change,
+  tumor_size = tumor_size,
+  smoker = smoker,
+  physical_activity = physical_activity,
+  family_history = family_history,
+  chemotherapy = chemotherapy,
+  ECOG = ECOG
+) %>%
+  mutate_if(is.character, as.factor)
+data$event <- ifelse(data$status == "Dead", 1, 0)
+data$event<-as.factor(data$event)
+# -----------------------------
+# Αποθήκευση
+# -----------------------------
+write.csv(data, "breast_cancer_survival.csv", row.names = FALSE)
